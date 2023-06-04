@@ -87,9 +87,11 @@ def shrink_image(img,target_size):
                                     target_height=target_size[1],
                                     target_width=target_size[0],
                                     method='nearest',
-                                    antialias=True)
+                                    antialias=True).numpy()
 
-    return img2.numpy() / 256
+    img3 = adjust_image_contrast(img2)
+
+    return img3 / 256
 
 def shrink_image_scale(img, target_size):
 
@@ -209,7 +211,8 @@ def build_augmented_dataset(path="./training/", target_size=(96,96), angle_list=
             print(f'\tangle={angle}\t{sample}')
 
 
-def split_augmented_dataset(split_rate=0.1):
+
+def split_augmented_dataset(split_rate=0.2):
     global X_train , Y_train, training_dataset_length
     global X_val , Y_val, validation_dataset_length        
 
@@ -254,6 +257,9 @@ def save_augmented_dataset(path = "./augmented"):
 
 def load_augmented_dataset(path = "./augmented"):
 
+    global X_train , Y_train
+    global X_val , Y_val
+
     X_train = np.load(path+'/X_train.npy')
 
     with open(path+'/Y_train.json','r') as f:
@@ -268,15 +274,39 @@ def load_augmented_dataset(path = "./augmented"):
 
 
 
+def adjust_image_contrast(img):
+    hist = np.zeros(256, dtype=np.uint)
+    pdf = np.zeros(256, dtype=np.uint)
+    width, height, _ = img.shape
+    o_img = np.zeros(img.shape)
+    
+    for row in range(height):
+        for col in range(width):
+            a = int(img[row][col])
+            hist[a] = hist[a] + 1
 
+    pdf[0] = hist[0]
+    for k in range(1,256):
+        pdf[k] = pdf[k-1] + hist[k]
 
+    a_min = int(np.min(img))
+    a_max = int(np.max(img))
+    p_range = (pdf[a_max] - pdf[a_min])
+
+    for row in range(height):
+        for col in range(width):
+            a = int(img[row][col])
+            v = (pdf[a] - pdf[a_min]) * 255 / p_range
+            o_img[row][col] = min(int(v),255)
+    return o_img        
+    
 
 if (__name__ == "__main__"):
 
 #    test(index=47,angle=30)
 
-    path = "./training/"
-    load_bounding_boxes(path)
+#   path = "./training/"
+#   load_bounding_boxes(path)
 
 #    angle = 5.0
 
@@ -291,7 +321,7 @@ if (__name__ == "__main__"):
 #            print(f'\toptimized bbox={OBB}')
 
     reset_augmented_dataset()
-    build_augmented_dataset(angle_list=[0,-10,10,-20,20,-30,30])
+    build_augmented_dataset(angle_list=[0,-10,10,-20,20,-30,30])    
     split_augmented_dataset()    
     save_augmented_dataset()
 
