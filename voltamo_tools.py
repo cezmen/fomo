@@ -133,7 +133,7 @@ def plot_image(img,title=None):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     img = np.squeeze(img)
-    ax.imshow(img, cmap=plt.cm.binary)
+    ax.imshow(img, cmap=plt.cm.gray)
     # Draw Grid
     for i in range(12):
         x = [i*8, i*8]
